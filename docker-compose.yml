@@ -43,23 +43,21 @@ services:
       - QDRANT_ALLOW_CORS=true
     restart: always
 
-  streamlit:
-    image: python:3.9-slim
+  frontend:
+    build:
+      context: frontend
+      dockerfile: Dockerfile
     ports:
       - "27365:8501"
     volumes:
-      - ./forntend:/app  # Монтирование всей директории
+      - ./frontend/main.py:/app/main.py
     working_dir: /app
     environment:
       API_URL: "http://api:8000"
     command: >
-      sh -c "
-        pip install --no-cache-dir streamlit pandas seaborn matplotlib requests scikit-learn tqdm openpyxl xlrd &&
-        ls
-        streamlit run main.py \
-          --server.port=8501 \
-          --server.fileWatcherType none
-      "
+      streamlit run main.py \
+        --server.port=8501 \
+        --server.fileWatcherType none
 
 volumes:
   qdrant_data:
