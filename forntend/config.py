@@ -8,11 +8,11 @@ PASSWORD = os.getenv("PASSWORD", "secret")
 # Примеры запросов для выбора
 DEFAULT_EXAMPLES = [
     {
-        "id": "INC0027099",
-        "description": "Удалить старые версии 1С клиента на пк коменданта.",
-        "subject": "Старая версия 1С клиента. Садовники д.4 к.2",
-        "class": "Сопровождение сервисов сотрудника",
-        "task": "1С клиент",
+        "id": "2102_0",
+        "description": "'Application not completed, Login problem'",
+        "subject": None,
+        "class": "Application Related/Login Issue",
+        "task": "",
     }
     # Можно добавить больше примеров в будущем
 ]

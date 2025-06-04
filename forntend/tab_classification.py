@@ -7,66 +7,66 @@ from api_utils import get_token, classify_request
 from config import DEFAULT_EXAMPLES
 
 def render_classification_tab(api_url, username, password):
-    """Отображение вкладки классификации"""
-    st.title("Классификация запросов")
+    """Display the classification tab"""
+    st.title("Intent Classification")
     
-    # Выбор примера запроса
-    st.subheader("Выбор запроса")
+    # Select a sample request
+    st.subheader("Choose Request")
 
-    use_default = st.checkbox("Использовать предустановленный запрос")
+    use_default = st.checkbox("Use default request")
 
     if use_default:
         example_index = st.selectbox(
-            "Выберите пример запроса:",
+            "Select a sample request:",
             options=range(len(DEFAULT_EXAMPLES)),
             format_func=lambda i: f"{DEFAULT_EXAMPLES[i]['id']} - {DEFAULT_EXAMPLES[i]['subject']}",
         )
 
         selected_example = DEFAULT_EXAMPLES[example_index]
 
-        # Отображаем детали выбранного примера
+        # Show details of the selected sample
         st.info(f"""
         **ID:** {selected_example["id"]}
-        **Тема:** {selected_example["subject"]}
-        **Описание:** {selected_example["description"]}
-        **Класс:** {selected_example["class"]}
-        **Задача:** {selected_example["task"]}
+        **Subject:** {selected_example["subject"]}
+        **Description:** {selected_example["description"]}
+        **Class:** {selected_example["class"]}
+        **Task:** {selected_example["task"]}
         """)
 
-        # Предзаполняем поля формы
+        # Pre-fill form fields
         default_subject = selected_example["subject"]
         default_description = selected_example["description"]
     else:
         default_subject = ""
         default_description = ""
 
-    # Форма для ввода данных
-    st.subheader("Данные для классификации")
-    subject = st.text_input("Тема (subject):", value=default_subject)
+    # Input form for classification data
+    st.subheader("Data for Classification")
+    subject = st.text_input("Subject:", value=default_subject)
     description = st.text_area(
-        "Описание (description):", value=default_description, height=200
+        "Description:", value=default_description, height=200
     )
 
-    if st.button("Классифицировать"):
+    if st.button("Classify"):
         if not subject and not description:
-            st.warning("Пожалуйста, введите тему или описание")
+            st.warning("Please enter a subject or description")
         else:
-            with st.spinner("Получение токена..."):
+            with st.spinner("Getting token..."):
                 token = get_token(api_url, username, password)
 
             if token:
-                with st.spinner("Классификация запроса..."):
+                with st.spinner("Classifying request..."):
                     result = classify_request(subject, description, token, api_url)
 
                 if result and "predictions" in result:
-                    st.success("Запрос успешно классифицирован!")
+                    st.success("Request successfully classified!")
 
-                    # Показываем результаты в виде таблицы
+                    # Show results as a table
                     predictions_df = pd.DataFrame(result["predictions"])
-                    st.subheader("Результаты классификации:")
+                    st.subheader("Classification Results:")
                     st.dataframe(predictions_df, width=800)
 
-                    # Визуализация вероятностей
+                    # Visualize probabilities
                     fig, ax = plt.subplots(figsize=(10, 5))
                     sns.barplot(
                         x="class_name",
@@ -74,19 +74,19 @@ def render_classification_tab(api_url, username, password):
                         data=predictions_df.head(5),
                         ax=ax,
                     )
-                    ax.set_xlabel("Класс")
-                    ax.set_ylabel("Вероятность")
-                    ax.set_title("Топ-5 классов по вероятности")
+                    ax.set_xlabel("Class")
+                    ax.set_ylabel("Probability")
+                    ax.set_title("Top 5 Classes by Probability")
                     plt.xticks(rotation=45, ha="right")
                     plt.tight_layout()
                     st.pyplot(fig)
 
-                    # Показываем предсказанный класс
+                    # Show the predicted class
                     st.subheader(
-                        f"Предсказанный класс: {result['predictions'][0]['class_name']}"
+                        f"Predicted Class: {result['predictions'][0]['class_name']}"
                     )
                     st.subheader(
-                        f"Вероятность: {result['predictions'][0]['probability']:.2f}"
+                        f"Probability: {result['predictions'][0]['probability']:.2f}"
                     )
                 else:
-                    st.error("Не удалось получить результаты классификации")
+                    st.error("Failed to get classification results")

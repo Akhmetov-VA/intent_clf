@@ -12,12 +12,12 @@ import json
 import os
 from datetime import datetime
 
-# Настройка логгера
+# Configure logger
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
 logger = logging.getLogger(__name__)
 
 def get_token(api_url, username, password):
-    """Функция для получения токена авторизации"""
+    """Function to obtain an authorization token"""
     try:
         response = requests.post(
             f"{api_url}/token",
@@ -30,23 +30,23 @@ def get_token(api_url, username, password):
         )
 
         if response.status_code != 200:
-            st.error(f"Ошибка аутентификации: {response.text}")
+            st.error(f"Authentication error: {response.text}")
             return None
 
         return response.json()["access_token"]
     except requests.exceptions.ConnectionError:
-        st.error(f"Не удалось подключиться к API по адресу {api_url}")
+        st.error(f"Failed to connect to API at {api_url}")
         return None
 
 def classify_request(subject, description, token, api_url):
-    """Функция для классификации запроса"""
+    """Function to classify a request"""
     headers = {"Authorization": f"Bearer {token}", "Content-Type": "application/json"}
 
-    # Генерируем ID для запроса
+    # Generate an ID for this request
     item_id = str(uuid.uuid4())
 
     payload = {
-        "id": item_id,  # Обязательное поле!
+        "id": item_id,  # Required field!
         "subject": subject if subject else "no_subject",
         "description": description if description else "no_description",
     }
@@ -58,11 +58,11 @@ def classify_request(subject, description, token, api_url):
         result = response.json()
         return result
     except Exception as e:
-        st.error(f"Ошибка при классификации: {str(e)}")
+        st.error(f"Error during classification: {str(e)}")
         return None
 
 def search_similar(subject, description, token, api_url, limit=10):
-    """Поиск похожих документов на основе темы и описания"""
+    """Search for similar documents based on subject and description"""
     headers = {"Authorization": f"Bearer {token}", "Content-Type": "application/json"}
 
     payload = {
@@ -79,44 +79,44 @@ def search_similar(subject, description, token, api_url, limit=10):
         result = response.json()
         return result
     except Exception as e:
-        st.error(f"Ошибка при поиске: {str(e)}")
+        st.error(f"Error during search: {str(e)}")
         if hasattr(e, "response") and e.response is not None:
-            st.error(f"Ответ сервера: {e.response.text}")
+            st.error(f"Server response: {e.response.text}")
         return None
 
 def clear_index(token, api_url):
-    """Очистка индекса перед загрузкой новых данных"""
+    """Clear index before uploading new data"""
     headers = {"Authorization": f"Bearer {token}", "Content-Type": "application/json"}
     
     try:
-        logger.info("Отправка запроса на очистку индекса")
+        logger.info("Sending request to clear index")
         response = requests.post(f"{api_url}/clear_index", headers=headers)
         
         if response.status_code != 200:
-            logger.error(f"Ошибка при очистке индекса: {response.text}")
-            st.error(f"Ошибка при очистке индекса: {response.text}")
+            logger.error(f"Error clearing index: {response.text}")
+            st.error(f"Error clearing index: {response.text}")
             return False
         
         result = response.json()
         if result.get("success"):
-            logger.info("Индекс успешно очищен")
-            st.success("Индекс успешно очищен")
+            logger.info("Index cleared successfully")
+            st.success("Index cleared successfully")
             return True
         else:
-            logger.warning(f"API вернул неожиданный ответ при очистке индекса: {result}")
-            st.warning(f"API вернул неожиданный ответ при очистке индекса: {result}")
+            logger.warning(f"API returned unexpected response when clearing index: {result}")
+            st.warning(f"API returned unexpected response when clearing index: {result}")
             return False
             
     except Exception as e:
-        logger.error(f"Ошибка при очистке индекса: {str(e)}")
-        st.error(f"Ошибка при очистке индекса: {str(e)}")
+        logger.error(f"Error clearing index: {str(e)}")
+        st.error(f"Error clearing index: {str(e)}")
         return False
 
 def upload_data(data, token, api_url):
-    """Загрузка данных в систему"""
+    """Upload data to the system"""
     headers = {"Authorization": f"Bearer {token}", "Content-Type": "application/json"}
 
-    # Разбиваем данные на батчи по 100 записей
+    # Split data into batches of 100 records
     batch_size = 100
     total_batches = len(data) // batch_size + (1 if len(data) % batch_size > 0 else 0)
 
@@ -128,10 +128,10 @@ def upload_data(data, token, api_url):
         end_idx = min((i + 1) * batch_size, len(data))
         batch_data = data.iloc[start_idx:end_idx]
 
-        # Подготавливаем данные для загрузки
+        # Prepare items for upload
         items = []
         for _, row in batch_data.iterrows():
-            # Используем оригинальный ID из данных, если он есть
+            # Use original ID from data if present
             item_id = row.get("id", str(uuid.uuid4()))
 
             item = {
@@ -141,7 +141,7 @@ def upload_data(data, token, api_url):
                 "class_name": row["class"],
             }
 
-            # Добавляем task, если есть в данных
+            # Add task if present in data
             if "task" in row and not pd.isna(row["task"]):
                 item["task"] = row["task"]
 
@@ -150,31 +150,31 @@ def upload_data(data, token, api_url):
         payload = {"items": items}
 
         try:
-            # Отправляем запрос на загрузку
+            # Send upload request
             response = requests.post(f"{api_url}/upload", json=payload, headers=headers)
 
             if response.status_code != 200:
-                st.error(f"Ошибка при загрузке батча {i + 1}/{total_batches}: {response.text}")
+                st.error(f"Error uploading batch {i + 1}/{total_batches}: {response.text}")
                 continue
                 
             result = response.json()
             if result.get("success") and "ids" in result:
                 uploaded_ids.extend(result["ids"])
             else:
-                st.warning(f"Предупреждение: API вернул неожиданный ответ для батча {i + 1}/{total_batches}: {result}")
+                st.warning(f"Warning: API returned unexpected response for batch {i + 1}/{total_batches}: {result}")
 
         except Exception as e:
-            st.error(f"Ошибка при загрузке батча {i + 1}/{total_batches}: {str(e)}")
+            st.error(f"Error uploading batch {i + 1}/{total_batches}: {str(e)}")
 
-        # Обновляем прогресс
+        # Update progress
         progress_value = min(1.0, (i + 1) / total_batches)
         progress_bar.progress(progress_value)
 
-    st.success(f"Загружено {len(uploaded_ids)} записей")
+    st.success(f"Uploaded {len(uploaded_ids)} records")
     return uploaded_ids
 
 def predict(data, token, api_url):
-    """Получение предсказаний для тестовых данных"""
+    """Get predictions for test data"""
     headers = {"Authorization": f"Bearer {token}", "Content-Type": "application/json"}
 
     predictions = []
@@ -184,106 +184,105 @@ def predict(data, token, api_url):
     for i, (index, row) in enumerate(data.iterrows()):
         try:
             payload = {
-                "id": str(uuid.uuid4()),  # Добавляем ID, так как он обязателен
+                "id": str(uuid.uuid4()),  # Added ID because it's required
                 "subject": row["subject"] if not pd.isna(row["subject"]) else "no_subject",
                 "description": row["description"] if not pd.isna(row["description"]) else "no_description",
             }
 
-            logger.info(f"Отправка запроса для записи {index}")
+            logger.info(f"Sending request for record {index}")
             response = requests.post(f"{api_url}/predict", json=payload, headers=headers)
 
             response.raise_for_status()
 
             result = response.json()
-            logger.debug(f"Получен ответ: {result}")
+            logger.debug(f"Received response: {result}")
 
             if not isinstance(result, dict) or "predictions" not in result:
-                raise ValueError("Неожиданный формат ответа от API")
+                raise ValueError("Unexpected API response format")
 
             predictions_list = result["predictions"]
             if not isinstance(predictions_list, list) or not predictions_list:
-                raise ValueError("Список предсказаний пуст или имеет неверный формат")
+                raise ValueError("Predictions list is empty or has invalid format")
                 
             top_prediction = predictions_list[0]["class_name"]
             predictions.append(top_prediction)
-            logger.info(f"Предсказание для записи {index}: {top_prediction}")
+            logger.info(f"Prediction for record {index}: {top_prediction}")
 
         except requests.exceptions.RequestException as e:
-            logger.error(f"Ошибка при отправке запроса для записи {index}: {str(e)}")
-            st.error(f"Ошибка при отправке запроса для записи {index}: {str(e)}")
+            logger.error(f"Error sending request for record {index}: {str(e)}")
+            st.error(f"Error sending request for record {index}: {str(e)}")
             predictions.append(None)
         except (KeyError, IndexError, ValueError) as e:
-            logger.error(f"Ошибка при обработке ответа API для записи {index}: {str(e)}")
-            st.error(f"Ошибка при обработке ответа API для записи {index}: {str(e)}")
+            logger.error(f"Error processing API response for record {index}: {str(e)}")
+            st.error(f"Error processing API response for record {index}: {str(e)}")
             predictions.append(None)
         except Exception as e:
-            logger.error(f"Неожиданная ошибка для записи {index}: {str(e)}")
-            st.error(f"Неожиданная ошибка для записи {index}: {str(e)}")
+            logger.error(f"Unexpected error for record {index}: {str(e)}")
+            st.error(f"Unexpected error for record {index}: {str(e)}")
             predictions.append(None)
 
-        # Обновляем прогресс (используем i вместо index)
+        # Update progress
         progress_value = min(1.0, (i + 1) / total_rows)
         progress_bar.progress(progress_value)
 
     return predictions
 
-# Функции из evaluate.py, перенесенные в api_utils.py
 def calculate_metrics(y_true, y_pred):
-    """Вычисление метрик качества классификации"""
-    # Удаляем записи, где предсказание не было получено
+    """Compute classification metrics"""
+    # Remove records where prediction was not obtained
     valid_indices = [i for i, pred in enumerate(y_pred) if pred is not None]
     y_true_valid = [y_true[i] for i in valid_indices]
     y_pred_valid = [y_pred[i] for i in valid_indices]
 
     if not y_true_valid:
-        logger.error("Ошибка: Нет валидных предсказаний для оценки")
+        logger.error("Error: No valid predictions for evaluation")
         return None, None, None, None
 
-    # Вычисляем метрики
+    # Compute metrics
     acc = accuracy_score(y_true_valid, y_pred_valid)
     
-    # Получаем отчет о классификации в виде словаря
+    # Get classification report as dictionary
     report_dict = classification_report(y_true_valid, y_pred_valid, output_dict=True)
     
-    # Также сохраняем текстовую версию для обратной совместимости
+    # Also save text version for backward compatibility
     report_text = classification_report(y_true_valid, y_pred_valid)
     
     cm = confusion_matrix(y_true_valid, y_pred_valid)
     
-    # Получаем уникальные классы для отображения в матрице ошибок
+    # Get unique classes for confusion matrix display
     classes = sorted(list(set(y_true_valid + y_pred_valid)))
     
     return acc, report_dict, report_text, cm, classes
 
 def get_classification_report_df(report_dict):
-    """Преобразование словаря classification_report в DataFrame"""
-    # Преобразуем словарь в DataFrame и транспонируем для лучшего отображения
+    """Convert classification_report dict to DataFrame"""
+    # Convert dict to DataFrame and transpose for better display
     df = pd.DataFrame(report_dict).transpose()
     
-    # Удаляем ненужные столбцы, если они есть
+    # Remove unnecessary columns if present
     columns_to_keep = ['precision', 'recall', 'f1-score', 'support']
     df = df[[col for col in columns_to_keep if col in df.columns]]
     
-    # Округляем числовые значения для лучшей читаемости
+    # Round numeric values for better readability
     for col in ['precision', 'recall', 'f1-score']:
         if col in df.columns:
             df[col] = df[col].round(2)
     
-    # Преобразуем support в целое число
+    # Convert support to integer
     if 'support' in df.columns:
         df['support'] = df['support'].astype(int)
     
     return df
 
 def plot_confusion_matrix(cm, class_names=None):
-    """Построение матрицы ошибок"""
+    """Plot confusion matrix"""
     fig, ax = plt.subplots(figsize=(10, 8))
     
-    # Если имена классов не указаны, используем уникальные значения
-    if class_names is None and cm.shape[0] <= 20:  # Ограничиваем для читаемости
+    # If class names not provided, use unique values (limit to improve readability)
+    if class_names is None and cm.shape[0] <= 20:
         class_names = [str(i) for i in range(cm.shape[0])]
     
-    # Создаем тепловую карту
+    # Create heatmap
     sns.heatmap(
         cm,
         annot=True,
@@ -293,20 +292,20 @@ def plot_confusion_matrix(cm, class_names=None):
         yticklabels=class_names if class_names else "auto",
     )
     
-    plt.xlabel("Предсказанный класс")
-    plt.ylabel("Истинный класс")
-    plt.title("Матрица ошибок")
+    plt.xlabel("Predicted Class")
+    plt.ylabel("True Class")
+    plt.title("Confusion Matrix")
     plt.xticks(rotation=45, ha='right')
     plt.tight_layout()
     
     return fig
 
 def plot_classification_metrics(report_dict):
-    """Создание визуализации метрик классификации"""
-    # Извлекаем данные для визуализации
+    """Create visualization of classification metrics"""
+    # Extract data for visualization
     classes = [k for k in report_dict.keys() if k not in ['accuracy', 'macro avg', 'weighted avg']]
     
-    # Создаем DataFrame для визуализации
+    # Create DataFrame for visualization
     metrics_data = {
         'Class': [],
         'Metric': [],
@@ -321,17 +320,17 @@ def plot_classification_metrics(report_dict):
     
     df = pd.DataFrame(metrics_data)
     
-    # Создаем визуализацию
+    # Create visualization
     fig, ax = plt.subplots(figsize=(12, 6))
     
-    # Используем разные цвета для разных метрик
+    # Use different colors for different metrics
     palette = {
         'precision': 'blue',
         'recall': 'green',
         'f1-score': 'red'
     }
     
-    # Создаем сгруппированную столбчатую диаграмму
+    # Create grouped bar chart
     sns.barplot(
         x='Class',
         y='Value',
@@ -341,17 +340,17 @@ def plot_classification_metrics(report_dict):
         ax=ax
     )
     
-    plt.title('Метрики классификации по классам')
-    plt.ylabel('Значение')
-    plt.xlabel('Класс')
+    plt.title('Classification Metrics by Class')
+    plt.ylabel('Value')
+    plt.xlabel('Class')
     plt.xticks(rotation=45, ha='right')
-    plt.legend(title='Метрика')
+    plt.legend(title='Metric')
     plt.tight_layout()
     
     return fig
 
 def save_metrics(metrics_dir, filename, acc, report_dict, report_text, cm, class_names=None):
-    """Сохранение метрик в файл"""
+    """Save metrics to file"""
     if not os.path.exists(metrics_dir):
         os.makedirs(metrics_dir)
     
@@ -371,7 +370,7 @@ def save_metrics(metrics_dir, filename, acc, report_dict, report_text, cm, class
     with open(os.path.join(metrics_dir, metrics_filename), "w", encoding="utf-8") as f:
         json.dump(metrics_data, f, ensure_ascii=False, indent=4)
     
-    # Сохраняем визуализации
+    # Save visualizations
     fig_cm = plot_confusion_matrix(cm, class_names)
     fig_cm.savefig(os.path.join(metrics_dir, f"confusion_matrix_{timestamp}.png"))
     
@@ -380,100 +379,100 @@ def save_metrics(metrics_dir, filename, acc, report_dict, report_text, cm, class
     
     return metrics_filename
 
-
 def filter_high_quality_classes(df, min_samples=10, min_f1_score=0.5, api_url=None, username=None, password=None):
     """
-    Функция для фильтрации классов с высоким качеством классификации.
-    
-    Параметры:
-    df (DataFrame): DataFrame с данными для обработки
-    min_samples (int): Минимальное количество образцов для сохранения класса
-    min_f1_score (float): Минимальное значение F1-score для сохранения класса
-    api_url, username, password: Параметры для подключения к API
-    
-    Возвращает:
-    DataFrame с отфильтрованными данными и словарь с метриками по классам
+    Function to filter classes with high classification quality.
+
+    Parameters:
+    df (DataFrame): DataFrame with data to process
+    min_samples (int): Minimum number of samples to keep a class
+    min_f1_score (float): Minimum F1-score to keep a class
+    api_url, username, password: API connection parameters
+
+    Returns:
+    DataFrame with filtered data and a dictionary with class metrics
     """
-    st.subheader("Анализ качества классификации по классам")
-    st.write(f'''Суть метода в том чтобы оставить те классы на которых мы уже хорошо работаем. 
-             Для этого мы сначала выносим очень редкие наблюдения меньше {min_samples} в отдельную категорию
-             Затем строим на этих данных модель и оставляем только те классы на которых качество получилось больше {min_f1_score} и уже после этого загружаем в базу только те классы на которых хорошо рабоатет''')
+    st.subheader("Analysis of classification quality by class")
+    st.write(f"""
+    The idea is to keep only classes on which we already perform well.
+    First, move very rare observations (fewer than {min_samples} samples) to a separate category.
+    Then train a model on this data and keep only classes with quality above {min_f1_score}.
+    Finally, we upload to the database only those classes with good performance.
+    """)
     
-    # Копируем исходный DataFrame
+    # Copy original DataFrame
     df_processed = df.copy()
     
-    # Подсчитываем количество образцов для каждого класса
+    # Count samples per class
     class_counts = df_processed["class"].value_counts()
     
-    # Определяем редкие классы (менее min_samples образцов)
+    # Identify rare classes (fewer than min_samples)
     rare_classes = class_counts[class_counts < min_samples].index.tolist()
     
-    # Заменяем редкие классы на "Другое"
+    # Replace rare classes with "Other"
     df_processed["class"] = df_processed["class"].apply(
-        lambda x: "Другое" if x in rare_classes else x
+        lambda x: "Other" if x in rare_classes else x
     )
     
-    # Отображаем статистику после замены
-    with st.expander("Статистика после фильтрации редких классов", expanded=True):
-        st.write(' ')
+    # Show statistics after replacing rare classes
+    with st.expander("Statistics after filtering rare classes", expanded=True):
         new_counts = df_processed["class"].value_counts()
         
-        # Создаем DataFrame для отображения
-        new_stats_df = pd.DataFrame({
-            'Значение': new_counts.index,
-            'Количество': new_counts.values,
-            'Процент': (new_counts.values / new_counts.sum() * 100).round(2)
+        stats_df = pd.DataFrame({
+            'Value': new_counts.index,
+            'Count': new_counts.values,
+            'Percentage': (new_counts.values / new_counts.sum() * 100).round(2)
         })
         
-        st.dataframe(new_stats_df)
+        st.dataframe(stats_df)
         
-        # Визуализация нового распределения
+        # Visualize new distribution
         fig, ax = plt.subplots(figsize=(10, 6))
         new_counts.plot(kind='bar', ax=ax)
-        plt.title('Распределение значений после фильтрации редких классов')
-        plt.xlabel('Значение')
-        plt.ylabel('Количество')
+        plt.title('Distribution of values after filtering rare classes')
+        plt.xlabel('Value')
+        plt.ylabel('Count')
         plt.xticks(rotation=45, ha='right')
         plt.tight_layout()
         
         st.pyplot(fig)
     
-    # Разбиваем данные на обучающую и тестовую выборки
+    # Split into train and test sets
     train_df, test_df = train_test_split(
         df_processed, test_size=0.2, random_state=42, stratify=df_processed["class"]
     )
     
-    # Получаем токен для доступа к API
+    # Get token for API access
     token = get_token(api_url, username, password)
     if not token:
-        st.error("Не удалось получить токен для доступа к API")
+        st.error("Failed to obtain API token")
         return None, None
     
-    # Очищаем индекс перед загрузкой
-    with st.spinner("Очистка существующего индекса..."):
+    # Clear index before upload
+    with st.spinner("Clearing existing index..."):
         clear_index(token, api_url)
     
-    # Загружаем обучающую выборку
-    with st.spinner("Загрузка обучающих данных в систему..."):
+    # Upload training set
+    with st.spinner("Uploading training data to system..."):
         upload_data(train_df, token, api_url)
     
-    # Получаем предсказания для тестовой выборки
-    with st.spinner("Получение предсказаний для тестовой выборки..."):
+    # Get predictions for test set
+    with st.spinner("Getting predictions for test set..."):
         preds = predict(test_df, token, api_url)
     
-    # Вычисляем метрики
+    # Compute metrics
     y_true = test_df["class"].tolist()
     y_pred = preds
     
-    # Удаляем None из предсказаний
+    # Remove None from predictions
     valid_indices = [i for i, pred in enumerate(y_pred) if pred is not None]
     y_true_valid = [y_true[i] for i in valid_indices]
     y_pred_valid = [y_pred[i] for i in valid_indices]
     
-    # Получаем отчет о классификации в виде словаря
+    # Get classification report as dictionary
     report_dict = classification_report(y_true_valid, y_pred_valid, output_dict=True)
     
-    # Фильтруем классы с высоким F1-score
+    # Filter classes based on F1-score
     high_quality_classes = []
     
     for class_name, metrics in report_dict.items():
@@ -481,89 +480,84 @@ def filter_high_quality_classes(df, min_samples=10, min_f1_score=0.5, api_url=No
             if metrics['f1-score'] >= min_f1_score:
                 high_quality_classes.append(class_name)
     
-    # Отображаем метрики по классам
-    with st.expander("Метрики по классам", expanded=True):
-        # Создаем DataFrame для отображения метрик
+    # Show class metrics
+    with st.expander("Metrics by class", expanded=True):
         metrics_df = pd.DataFrame([
             {
-                'Класс': class_name,
+                'Class': class_name,
                 'Precision': report_dict[class_name]['precision'],
                 'Recall': report_dict[class_name]['recall'],
                 'F1-score': report_dict[class_name]['f1-score'],
                 'Support': report_dict[class_name]['support'],
-                'Качество': 'Высокое' if class_name in high_quality_classes else 'Низкое'
+                'Quality': 'High' if class_name in high_quality_classes else 'Low'
             }
             for class_name in report_dict.keys()
             if class_name not in ['accuracy', 'macro avg', 'weighted avg']
         ])
         
-        # Сортируем по F1-score
+        # Sort by F1-score
         metrics_df = metrics_df.sort_values('F1-score', ascending=False)
         
-        # Округляем числовые значения
+        # Round numeric values
         for col in ['Precision', 'Recall', 'F1-score']:
             metrics_df[col] = metrics_df[col].round(3)
         
         st.dataframe(metrics_df)
         
-        # Визуализация F1-score по классам
+        # Visualize F1-score by class
         fig, ax = plt.subplots(figsize=(12, 6))
         
-        # Создаем цветовую палитру в зависимости от качества
-        colors = metrics_df['Качество'].map({'Высокое': 'green', 'Низкое': 'red'})
+        # Create color palette based on quality
+        colors = metrics_df['Quality'].map({'High': 'green', 'Low': 'red'})
         
-        # Создаем столбчатую диаграмму
-        bars = ax.bar(metrics_df['Класс'], metrics_df['F1-score'], color=colors)
+        bars = ax.bar(metrics_df['Class'], metrics_df['F1-score'], color=colors)
         
-        # Добавляем горизонтальную линию для порога
+        # Add horizontal threshold line
         ax.axhline(y=min_f1_score, color='red', linestyle='--', alpha=0.7)
-        ax.text(0, min_f1_score + 0.01, f'Порог F1-score: {min_f1_score}', color='red')
+        ax.text(0, min_f1_score + 0.01, f'F1-score threshold: {min_f1_score}', color='red')
         
-        plt.title('F1-score по классам')
-        plt.xlabel('Класс')
+        plt.title('F1-score by class')
+        plt.xlabel('Class')
         plt.ylabel('F1-score')
         plt.xticks(rotation=45, ha='right')
         plt.tight_layout()
         
         st.pyplot(fig)
     
-    # Фильтруем данные, оставляя только классы с высоким качеством
-
+    # Filter data to keep only high-quality classes
     df_processed["class"] = df_processed["class"].apply(
-                    lambda x: x if x in high_quality_classes else "Другое"
-                )
+        lambda x: x if x in high_quality_classes else "Other"
+    )
     df_high_quality = df_processed
-
     
-    # Отображаем статистику после фильтрации по качеству
-    with st.expander("Статистика после фильтрации по качеству", expanded=True):
+    # Show statistics after filtering by quality
+    with st.expander("Statistics after filtering by quality", expanded=True):
         high_quality_counts = df_high_quality["class"].value_counts()
         
-        # Создаем DataFrame для отображения
-        high_quality_stats_df = pd.DataFrame({
-            'Значение': high_quality_counts.index,
-            'Количество': high_quality_counts.values,
-            'Процент': (high_quality_counts.values / high_quality_counts.sum() * 100).round(2)
+        stats_df = pd.DataFrame({
+            'Value': high_quality_counts.index,
+            'Count': high_quality_counts.values,
+            'Percentage': (high_quality_counts.values / high_quality_counts.sum() * 100).round(2)
         })
         
-        st.dataframe(high_quality_stats_df)
+        st.dataframe(stats_df)
         
-        # Визуализация распределения после фильтрации по качеству
+        # Visualize distribution after filtering by quality
         fig, ax = plt.subplots(figsize=(10, 6))
         high_quality_counts.plot(kind='bar', ax=ax)
-        plt.title('Распределение значений после фильтрации по качеству')
-        plt.xlabel('Значение')
-        plt.ylabel('Количество')
+        plt.title('Distribution of values after filtering by quality')
+        plt.xlabel('Value')
+        plt.ylabel('Count')
         plt.xticks(rotation=45, ha='right')
         plt.tight_layout()
         
         st.pyplot(fig)
     
-    # Отображаем информацию о результатах фильтрации
-    st.info(f"Исходное количество классов: {len(class_counts)}")
-    st.info(f"Количество классов после фильтрации редких: {len(new_counts)}")
-    st.info(f"Количество классов с высоким качеством (F1-score >= {min_f1_score}): {len(high_quality_classes)}")
-    st.info(f"Количество записей в отфильтрованном наборе: {len(df_high_quality)} из {len(df_processed)} ({len(df_high_quality)/len(df_processed)*100:.1f}%)")
+    # Display filtering results
+    st.info(f"Original number of classes: {len(class_counts)}")
+    st.info(f"Number of classes after filtering rare: {len(new_counts)}")
+    st.info(f"Number of high-quality classes (F1-score >= {min_f1_score}): {len(high_quality_classes)}")
+    st.info(f"Number of records in filtered set: {len(df_high_quality)} out of {len(df_processed)} ({len(df_high_quality)/len(df_processed)*100:.1f}%)")
     
-    # Возвращаем отфильтрованный DataFrame и метрики
+    # Return filtered DataFrame and metrics
     return df_high_quality, report_dict

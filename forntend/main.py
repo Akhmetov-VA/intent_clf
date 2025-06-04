@@ -5,39 +5,39 @@ from tab_classification import render_classification_tab
 from tab_similar_docs import render_similar_docs_tab
 from tab_data_upload import render_data_upload_tab
 
-# Настройка страницы
+# Page configuration
 st.set_page_config(
-    page_title="Классификатор запросов",
+    page_title="Intent Classifier",
     page_icon="🔍",
     layout="wide",
     initial_sidebar_state="expanded",
 )
 
-# Глобальные переменные для настроек API
+# Global variables for API settings
 api_url = API_URL
 username = USERNAME
 password = PASSWORD
 
-# Боковая панель для настроек API
+# Sidebar for API settings
 with st.sidebar:
-    st.title("Настройки API")
-    username = st.text_input("Имя пользователя",) #value=USERNAME)
-    password = st.text_input("Пароль", type="password",) # value=PASSWORD,)
+    st.title("API Settings")
+    username = st.text_input("Username")
+    password = st.text_input("Password", type="password")
 
-    if st.button("Сохранить настройки"):
-        st.success("Настройки сохранены")
+    if st.button("Save Settings"):
+        st.success("Settings saved")
 
-# Создаем вкладки
-tab1, tab2, tab3 = st.tabs(["Классификация", "Похожие документы", "Загрузка данных"])
+# Create tabs
+tab1, tab2, tab3 = st.tabs(["Classification", "Similar Documents", "Data Upload"])
 
-# Вкладка 1: Классификация
+# Tab 1: Classification
 with tab1:
     render_classification_tab(api_url, username, password)
 
-# Вкладка 2: Похожие документы
+# Tab 2: Similar Documents
 with tab2:
     render_similar_docs_tab(api_url, username, password)
 
-# Вкладка 3: Загрузка данных и оценка
+# Tab 3: Data Upload and Evaluation
 with tab3:
     render_data_upload_tab(api_url, username, password)
