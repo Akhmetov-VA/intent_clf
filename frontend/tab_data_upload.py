@@ -212,7 +212,7 @@ def render_data_upload_tab(api_url, username, password):
                 if token:
                     # Split into train and test sets
                     train_df, test_df = train_test_split(
-                        df_processed, test_size=0.2, random_state=42, stratify=df_processed["class"]
+                        df_processed, test_size=0.1, random_state=42, stratify=df_processed["class"]
                     )
                     
                     with st.spinner("Uploading data to the system..."):
