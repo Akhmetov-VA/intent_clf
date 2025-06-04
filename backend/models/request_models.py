@@ -10,6 +10,7 @@ class RequestItem(BaseModel):
     class_name: Optional[str] = Field(
         None, description="Класс обращения (если известен)"
     )
+    collection: Optional[str] = Field(None, description="Имя коллекции Qdrant")
     task: Optional[str] = Field(None, description="Задача обращения (если известна)")
 
     class Config:
@@ -26,6 +27,7 @@ class RequestItem(BaseModel):
 
 class BatchRequestItem(BaseModel):
     items: List[RequestItem] = Field(..., description="Список обращений для обработки")
+    collection: Optional[str] = Field(None, description="Имя коллекции Qdrant для загрузки")
 
     class Config:
         schema_extra = {
@@ -87,6 +89,7 @@ class SearchRequest(BaseModel):
     subject: str = Field("", description="Тема для поиска")
     description: str = Field("", description="Описание для поиска")
     limit: int = Field(10, description="Количество результатов")
+    collection: Optional[str] = Field(None, description="Имя коллекции Qdrant для поиска")
 
 
 class SearchResult(BaseModel):
@@ -115,3 +118,7 @@ class SearchResponse(BaseModel):
                 ]
             }
         }
+
+class CollectionRequest(BaseModel):
+    collection: Optional[str] = Field(None, description="Имя коллекции Qdrant")
+

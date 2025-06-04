@@ -23,6 +23,7 @@ async def predict(
         request.subject,
         request.description,
         combined_embedding[0],
+        collection_name=request.collection
     )
 
     return PredictionResponse(predictions=predictions)
