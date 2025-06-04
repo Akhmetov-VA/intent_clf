@@ -30,7 +30,7 @@ app.include_router(search.router)
 
 @app.on_event("startup")
 async def startup_event():
-    vector_db.init_collection()
+    vector_db.init_collection(vector_db.collection_name)
 
 
 if __name__ == "__main__":

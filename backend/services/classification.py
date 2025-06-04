@@ -51,13 +51,13 @@ class FilteredKNNClassificationService:
         return logits[:, 0].tolist()
 
     def predict(
-        self, subject: str, description: str, query_vector: np.ndarray
+        self, subject: str, description: str, query_vector: np.ndarray, collection_name: Optional[str] = None
     ) -> List[Dict[str, float]]:
         """Return class probabilities for the provided query."""
         query_text = f"{subject} {description}"
 
         # Search in vector database
-        neighbors = vector_db.search_vectors(query_vector, limit=self.k)
+        neighbors = vector_db.search_vectors(query_vector, limit=self.k, collection_name=collection_name)
 
         if not neighbors:
             logger.warning("No neighbors found in vector DB")

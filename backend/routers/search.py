@@ -22,7 +22,7 @@ async def search(
     query_embedding = np.concatenate([subject_embedding, description_embedding])
 
     # Ищем похожие векторы
-    search_results = vector_db.search_vectors(query_embedding, limit=request.limit)
+    search_results = vector_db.search_vectors(query_embedding, limit=request.limit, collection_name=request.collection)
 
     # Форматируем результаты
     results = [

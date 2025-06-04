@@ -7,7 +7,7 @@ from services.embedding import embedder
 from services.vector_db import vector_db
 
 from models.auth import User
-from models.request_models import BatchRequestItem, UploadResponse
+from models.request_models import BatchRequestItem, UploadResponse, CollectionRequest
 
 # Добавляем логгер
 logger = logging.getLogger("upload_router")
@@ -46,7 +46,7 @@ async def upload_data(
 
     # Загружаем векторы в Qdrant
     try:
-        ids = vector_db.upload_vectors(combined_embeddings, payloads)
+        ids = vector_db.upload_vectors(combined_embeddings, payloads, collection_name=request.collection)
         return UploadResponse(success=True, message="Данные успешно загружены", ids=ids)
     except Exception as e:
         logger.error(f"Error uploading vectors: {str(e)}")
@@ -55,9 +55,9 @@ async def upload_data(
         )
 
 @router.post("/clear_index", response_model=UploadResponse)
-async def clear_index(current_user: User = Depends(get_current_active_user)):
+async def clear_index(request: CollectionRequest = None, current_user: User = Depends(get_current_active_user)):
     try:
-        vector_db.clear_collection()
+        vector_db.clear_collection(collection_name=request.collection if request else None)
         return UploadResponse(success=True, message="Индекс успешно очищен", ids=[])
     except Exception as e:
         logger.error(f"Error clearing index: {str(e)}")

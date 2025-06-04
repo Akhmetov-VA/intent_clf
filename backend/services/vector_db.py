@@ -15,26 +15,27 @@ class VectorDBService:
         self.client = QdrantClient(host=settings.QDRANT_HOST, port=settings.QDRANT_PORT)
         self.collection_name = settings.QDRANT_COLLECTION
         self.vector_size = 1024 * 2  # 1024 для subject + 1024 для description
-        self.init_collection()
+        self.init_collection(self.collection_name)
         logger.info(
             f"Initialized VectorDBService with host={settings.QDRANT_HOST}, port={settings.QDRANT_PORT}"
         )
 
-    def init_collection(self):
+    def init_collection(self, collection_name: Optional[str] = None) -> None:
         """
         Инициализирует коллекцию в Qdrant, если она еще не существует
         """
-        logger.info(f"Checking if collection {self.collection_name} exists")
+        name = collection_name or self.collection_name
+        logger.info(f"Checking if collection {name} exists")
         existing = [c.name for c in self.client.get_collections().collections]
 
-        if self.collection_name not in existing:
+        if name not in existing:
             logger.info(
-                f"Creating collection {self.collection_name} with vector size {self.vector_size}"
+                f"Creating collection {name} with vector size {self.vector_size}"
             )
 
             # Создаём коллекцию только с параметрами векторов
             self.client.create_collection(
-                collection_name=self.collection_name,
+                collection_name=name,
                 vectors_config=models.VectorParams(
                     size=self.vector_size,
                     distance=models.Distance.COSINE
@@ -54,14 +55,14 @@ class VectorDBService:
             }.items():
                 logger.info(f"Creating payload index for field: {field_name}")
                 self.client.create_payload_index(
-                    collection_name=self.collection_name,
+                    collection_name=name,
                     field_name=field_name,
                     field_schema=field_type
                 )
 
-            logger.info(f"Collection {self.collection_name} created successfully")
+            logger.info(f"Collection {name} created successfully")
         else:
-            logger.info(f"Collection {self.collection_name} already exists")
+            logger.info(f"Collection {name} already exists")
 
 
 
@@ -72,7 +73,7 @@ class VectorDBService:
         return str(uuid.uuid5(uuid.NAMESPACE_DNS, string_id))
 
     def upload_vectors(
-        self, vectors: np.ndarray, payloads: List[Dict[str, Any]]
+        self, vectors: np.ndarray, payloads: List[Dict[str, Any]], collection_name: Optional[str] = None
     ) -> List[str]:
         """
         Загружает векторы и метаданные в Qdrant.
@@ -86,6 +87,7 @@ class VectorDBService:
             )
 
         # Создаем точки для загрузки
+        name = collection_name or self.collection_name
         points = []
         ids = []
 
@@ -100,29 +102,25 @@ class VectorDBService:
                     id=point_id, vector=vectors[i].tolist(), payload=payloads[i]
                 )
             )
-
         logger.info(
-            f"Uploading {len(vectors)} vectors to Qdrant collection {self.collection_name}"
+            f"Uploading {len(vectors)} vectors to Qdrant collection {name}"
         )
-
-        # Загружаем векторы в Qdrant
-        self.client.upsert(collection_name=self.collection_name, points=points)
+        self.client.upsert(collection_name=name, points=points)
 
         logger.info(f"Successfully uploaded {len(vectors)} vectors")
         return ids
 
     def search_vectors(
-        self, query_vector: np.ndarray, limit: int = 10
+        self, query_vector: np.ndarray, limit: int = 10, collection_name: Optional[str] = None
     ) -> List[Dict[str, Any]]:
-        """
-        Ищет ближайшие векторы в Qdrant
-        """
+        """Ищет ближайшие векторы в Qdrant."""
+        name = collection_name or self.collection_name
         logger.info(
-            f"Searching for {limit} closest vectors in collection {self.collection_name}"
+            f"Searching for {limit} closest vectors in collection {name}"
         )
 
         search_result = self.client.search(
-            collection_name=self.collection_name,
+            collection_name=name,
             query_vector=query_vector.tolist(),
             limit=limit,
         )
@@ -140,14 +138,15 @@ class VectorDBService:
         logger.info(f"Found {len(results)} results")
         return results
 
-    def search_by_id(self, request_id: str) -> Dict[str, Any]:
+    def search_by_id(self, request_id: str, collection_name: Optional[str] = None) -> Dict[str, Any]:
         """
         Ищет запись по оригинальному ID
         """
+        name = collection_name or self.collection_name
         logger.info(f"Searching for record with request_id={request_id}")
 
         search_result = self.client.scroll(
-            collection_name=self.collection_name,
+            collection_name=name,
             scroll_filter=models.Filter(
                 must=[
                     models.FieldCondition(
@@ -170,16 +169,17 @@ class VectorDBService:
         logger.warning(f"No record found with request_id={request_id}")
         return None
     
-    def clear_collection(self):
+    def clear_collection(self, collection_name: Optional[str] = None):
         """
         Очищает коллекцию в Qdrant
         """
-        logger.info(f"Clearing collection {self.collection_name}")
+        name = collection_name or self.collection_name
+        logger.info(f"Clearing collection {name}")
         try:
-            self.client.delete_collection(collection_name=self.collection_name)
-            logger.info(f"Collection {self.collection_name} deleted")
+            self.client.delete_collection(collection_name=name)
+            logger.info(f"Collection {name} deleted")
             # Пересоздаем коллекцию
-            self.init_collection()
+            self.init_collection(name)
             return True
         except Exception as e:
             logger.error(f"Error clearing collection: {str(e)}")
