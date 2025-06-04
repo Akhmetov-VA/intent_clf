@@ -27,6 +27,8 @@ class Settings(BaseSettings):
 
     # Настройки классификации
     KNN_NEIGHBORS: int = 5
+    RERANKER_MODEL: str = "BAAI/bge-reranker-large"
+    RERANK_THRESHOLD: float = 0.2
 
     class Config:
         env_file = ".env"
