@@ -18,7 +18,11 @@ async def predict(
         [request.subject], [request.description]
     )
 
-    # Получаем предсказания
-    predictions = classifier.predict(combined_embedding[0])
+    # Получаем предсказания с учетом текстов для двухуровневого классификатора
+    predictions = classifier.predict(
+        request.subject,
+        request.description,
+        combined_embedding[0],
+    )
 
     return PredictionResponse(predictions=predictions)
