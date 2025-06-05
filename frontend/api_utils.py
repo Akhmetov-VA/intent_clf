@@ -38,7 +38,7 @@ def get_token(api_url, username, password):
         st.error(f"Failed to connect to API at {api_url}")
         return None
 
-def classify_request(subject, description, token, api_url):
+def classify_request(subject, description, token, api_url, collection=None):
     """Function to classify a request"""
     headers = {"Authorization": f"Bearer {token}", "Content-Type": "application/json"}
 
@@ -50,6 +50,8 @@ def classify_request(subject, description, token, api_url):
         "subject": subject if subject else "no_subject",
         "description": description if description else "no_description",
     }
+    if collection:
+        payload["collection"] = collection
 
     try:
         response = requests.post(f"{api_url}/predict", json=payload, headers=headers)
@@ -61,7 +63,7 @@ def classify_request(subject, description, token, api_url):
         st.error(f"Error during classification: {str(e)}")
         return None
 
-def search_similar(subject, description, token, api_url, limit=10):
+def search_similar(subject, description, token, api_url, limit=10, collection=None):
     """Search for similar documents based on subject and description"""
     headers = {"Authorization": f"Bearer {token}", "Content-Type": "application/json"}
 
@@ -71,6 +73,8 @@ def search_similar(subject, description, token, api_url, limit=10):
         "description": description if description else "no_description",
         "limit": limit,
     }
+    if collection:
+        payload["collection"] = collection
 
     try:
         response = requests.post(f"{api_url}/search", json=payload, headers=headers)
@@ -84,13 +88,19 @@ def search_similar(subject, description, token, api_url, limit=10):
             st.error(f"Server response: {e.response.text}")
         return None
 
-def clear_index(token, api_url):
+def clear_index(token, api_url, collection=None):
     """Clear index before uploading new data"""
     headers = {"Authorization": f"Bearer {token}", "Content-Type": "application/json"}
-    
+
+    payload = {"collection": collection} if collection else None
+
     try:
         logger.info("Sending request to clear index")
-        response = requests.post(f"{api_url}/clear_index", headers=headers)
+        response = requests.post(
+            f"{api_url}/clear_index",
+            headers=headers,
+            json=payload,
+        )
         
         if response.status_code != 200:
             logger.error(f"Error clearing index: {response.text}")
@@ -112,7 +122,34 @@ def clear_index(token, api_url):
         st.error(f"Error clearing index: {str(e)}")
         return False
 
-def upload_data(data, token, api_url):
+def create_collection(token, api_url, collection):
+    """Create new collection on the server."""
+    headers = {"Authorization": f"Bearer {token}", "Content-Type": "application/json"}
+    payload = {"collection": collection}
+    try:
+        response = requests.post(f"{api_url}/create_collection", json=payload, headers=headers)
+        response.raise_for_status()
+        st.success("Collection created")
+        return True
+    except Exception as e:
+        st.error(f"Error creating collection: {str(e)}")
+        return False
+
+def copy_collection(token, api_url, source, dest=None):
+    """Copy one collection to another on the server."""
+    headers = {"Authorization": f"Bearer {token}", "Content-Type": "application/json"}
+    payload = {"source": source}
+    if dest:
+        payload["dest"] = dest
+    try:
+        response = requests.post(f"{api_url}/copy_collection", json=payload, headers=headers)
+        response.raise_for_status()
+        st.success("Collection copied")
+        return True
+    except Exception as e:
+        st.error(f"Error copying collection: {str(e)}")
+        return False
+def upload_data(data, token, api_url, collection=None):
     """Upload data to the system"""
     headers = {"Authorization": f"Bearer {token}", "Content-Type": "application/json"}
 
@@ -148,10 +185,16 @@ def upload_data(data, token, api_url):
             items.append(item)
 
         payload = {"items": items}
+        if collection:
+            payload["collection"] = collection
 
         try:
             # Send upload request
-            response = requests.post(f"{api_url}/upload", json=payload, headers=headers)
+            response = requests.post(
+                f"{api_url}/upload",
+                json=payload,
+                headers=headers,
+            )
 
             if response.status_code != 200:
                 st.error(f"Error uploading batch {i + 1}/{total_batches}: {response.text}")
@@ -173,7 +216,7 @@ def upload_data(data, token, api_url):
     st.success(f"Uploaded {len(uploaded_ids)} records")
     return uploaded_ids
 
-def predict(data, token, api_url):
+def predict(data, token, api_url, collection=None):
     """Get predictions for test data"""
     headers = {"Authorization": f"Bearer {token}", "Content-Type": "application/json"}
 
@@ -188,9 +231,15 @@ def predict(data, token, api_url):
                 "subject": row["subject"] if not pd.isna(row["subject"]) else "no_subject",
                 "description": row["description"] if not pd.isna(row["description"]) else "no_description",
             }
+            if collection:
+                payload["collection"] = collection
 
             logger.info(f"Sending request for record {index}")
-            response = requests.post(f"{api_url}/predict", json=payload, headers=headers)
+            response = requests.post(
+                f"{api_url}/predict",
+                json=payload,
+                headers=headers,
+            )
 
             response.raise_for_status()
 

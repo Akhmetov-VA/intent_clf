@@ -4,6 +4,7 @@ from config import API_URL, USERNAME, PASSWORD
 from tab_classification import render_classification_tab
 from tab_similar_docs import render_similar_docs_tab
 from tab_data_upload import render_data_upload_tab
+from tab_test_env import render_test_env_tab
 
 # Page configuration
 st.set_page_config(
@@ -28,7 +29,12 @@ with st.sidebar:
         st.success("Settings saved")
 
 # Create tabs
-tab1, tab2, tab3 = st.tabs(["Classification", "Similar Documents", "Data Upload"])
+tab1, tab2, tab3, tab4 = st.tabs([
+    "Classification",
+    "Similar Documents",
+    "Data Upload",
+    "Test Stand",
+])
 
 # Tab 1: Classification
 with tab1:
@@ -41,3 +47,7 @@ with tab2:
 # Tab 3: Data Upload and Evaluation
 with tab3:
     render_data_upload_tab(api_url, username, password)
+
+# Tab 4: Test Stand
+with tab4:
+    render_test_env_tab(api_url, username, password)

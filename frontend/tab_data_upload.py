@@ -8,13 +8,16 @@ from datetime import datetime
 
 from api_utils import get_token, clear_index, upload_data, predict, accuracy_score, train_test_split, classification_report, confusion_matrix, filter_high_quality_classes
 
-def render_data_upload_tab(api_url, username, password):
+def render_data_upload_tab(api_url, username, password, collection=None):
     """Display the Data Upload and Quality Evaluation tab"""
-    st.title("Data Upload and Quality Evaluation")
+    title = "Data Upload and Quality Evaluation"
+    if collection:
+        title += f" ({collection})"
+    st.title(title)
     
     # Create directories for saving files and metrics if they don't exist
     data_dir = "uploaded_data"
-    metrics_dir = "metrics"
+    metrics_dir = os.path.join("metrics", collection or "prod")
     if not os.path.exists(data_dir):
         os.makedirs(data_dir)
     if not os.path.exists(metrics_dir):
@@ -218,14 +221,14 @@ def render_data_upload_tab(api_url, username, password):
                     with st.spinner("Uploading data to the system..."):
                         if clear_index_flag:
                             st.info("Clearing existing index...")
-                            clear_index(token, api_url)
-                        
-                        upload_data(train_df, token, api_url)
+                            clear_index(token, api_url, collection)
+
+                        upload_data(train_df, token, api_url, collection)
                     
                     st.success("Data uploaded successfully")
                     
                     with st.spinner("Getting predictions for the test set..."):
-                        preds = predict(test_df, token, api_url)
+                        preds = predict(test_df, token, api_url, collection)
                     
                     # Calculate metrics
                     y_true = test_df["class"].tolist()
@@ -326,7 +329,12 @@ def render_data_upload_tab(api_url, username, password):
                         
                         if upload_test_data:
                             with st.spinner("Uploading test set to the system..."):
-                                test_upload_result = upload_data(test_df, token, api_url)
+                                test_upload_result = upload_data(
+                                    test_df,
+                                    token,
+                                    api_url,
+                                    collection,
+                                )
                                 if test_upload_result:
                                     st.success(f"Test set uploaded successfully ({len(test_df)} records)")
                                 else:

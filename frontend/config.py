@@ -5,6 +5,9 @@ API_URL = os.getenv("API_URL", "http://localhost:8190")
 USERNAME = os.getenv("USERNAME", "admin") 
 PASSWORD = os.getenv("PASSWORD", "secret")
 
+# Имя коллекции по умолчанию для тестового стенда
+TEST_COLLECTION = os.getenv("TEST_COLLECTION", "test_requests")
+
 # Примеры запросов для выбора
 DEFAULT_EXAMPLES = [
     {

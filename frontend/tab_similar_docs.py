@@ -48,11 +48,30 @@ def render_similar_docs_tab(api_url, username, password):
             if token:
                 with st.spinner("Searching for similar documents..."):
                     search_results = search_similar(
-                        search_subject, search_description, token, api_url, limit
+                        search_subject,
+                        search_description,
+                        token,
+                        api_url,
+                        limit,
                     )
+                    test_collection = st.session_state.get("test_collection")
+                    test_results = None
+                    if test_collection:
+                        test_results = search_similar(
+                            search_subject,
+                            search_description,
+                            token,
+                            api_url,
+                            limit,
+                            collection=test_collection,
+                        )
 
                 if search_results and "results" in search_results:
                     st.success(f"Found {len(search_results['results'])} documents")
+                    if test_results and "results" in test_results:
+                        st.info(
+                            f"Test collection {test_collection}: {len(test_results['results'])} results"
+                        )
                     
                     # Display user's query
                     st.subheader("Your Query")
@@ -64,7 +83,7 @@ def render_similar_docs_tab(api_url, username, password):
                     
                     # Display top-3 most similar documents
                     if len(search_results["results"]) > 0:
-                        st.subheader("Top 3 Most Similar Documents")
+                        st.subheader("Top 3 Most Similar Documents (Prod)")
                         top3_results = search_results["results"][:min(3, len(search_results["results"]))]
                         
                         top3_data = []
@@ -78,9 +97,25 @@ def render_similar_docs_tab(api_url, username, password):
                             })
                         
                         st.dataframe(pd.DataFrame(top3_data), use_container_width=True)
+
+                    if test_results and "results" in test_results and len(test_results["results"]) > 0:
+                        st.subheader(f"Top 3 Most Similar Documents ({test_collection})")
+                        top3_test = test_results["results"][:min(3, len(test_results["results"]))]
+                        tdata = []
+                        for r in top3_test:
+                            tdata.append(
+                                {
+                                    "Request ID": r["request_id"],
+                                    "Subject": r["subject"],
+                                    "Description": r["description"],
+                                    "Class": r["class_name"],
+                                    "Similarity Score": f"{r['score']:.4f}",
+                                }
+                            )
+                        st.dataframe(pd.DataFrame(tdata), use_container_width=True)
                     
                     # Display all results in a table
-                    st.subheader("All Retrieved Documents")
+                    st.subheader("All Retrieved Documents (Prod)")
                     
                     # Prepare data for table
                     table_data = []
@@ -95,6 +130,21 @@ def render_similar_docs_tab(api_url, username, password):
                     
                     results_df = pd.DataFrame(table_data)
                     st.dataframe(results_df, use_container_width=True)
+
+                    if test_results and "results" in test_results:
+                        st.subheader(f"All Retrieved Documents ({test_collection})")
+                        ttable = [
+                            {
+                                "Request ID": r["request_id"],
+                                "Subject": r["subject"],
+                                "Description": r["description"],
+                                "Class": r["class_name"],
+                                "Score": f"{r['score']:.4f}",
+                            }
+                            for r in test_results["results"]
+                        ]
+                        tdf = pd.DataFrame(ttable)
+                        st.dataframe(tdf, use_container_width=True)
 
                     # Visualize class distribution
                     if search_results["results"]:

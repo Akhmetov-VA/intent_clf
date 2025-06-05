@@ -122,3 +122,10 @@ class SearchResponse(BaseModel):
 class CollectionRequest(BaseModel):
     collection: Optional[str] = Field(None, description="Имя коллекции Qdrant")
 
+
+class CopyCollectionRequest(BaseModel):
+    source: str = Field(..., description="Имя коллекции-источника")
+    dest: Optional[str] = Field(
+        None, description="Имя целевой коллекции (по умолчанию основная)"
+    )
+
