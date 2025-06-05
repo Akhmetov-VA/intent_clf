@@ -7,7 +7,12 @@ from services.embedding import embedder
 from services.vector_db import vector_db
 
 from models.auth import User
-from models.request_models import BatchRequestItem, UploadResponse, CollectionRequest
+from models.request_models import (
+    BatchRequestItem,
+    UploadResponse,
+    CollectionRequest,
+    CopyCollectionRequest,
+)
 
 # Добавляем логгер
 logger = logging.getLogger("upload_router")
@@ -64,3 +69,27 @@ async def clear_index(request: CollectionRequest = None, current_user: User = De
         raise HTTPException(
             status_code=500, detail=f"Error clearing index: {str(e)}"
         )
+
+
+@router.post("/create_collection", response_model=UploadResponse)
+async def create_collection(
+    request: CollectionRequest, current_user: User = Depends(get_current_active_user)
+):
+    try:
+        vector_db.init_collection(request.collection)
+        return UploadResponse(success=True, message="Коллекция создана", ids=[])
+    except Exception as e:
+        logger.error(f"Error creating collection: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Error creating collection: {str(e)}")
+
+
+@router.post("/copy_collection", response_model=UploadResponse)
+async def copy_collection(
+    request: CopyCollectionRequest, current_user: User = Depends(get_current_active_user)
+):
+    try:
+        vector_db.copy_collection(request.source, request.dest)
+        return UploadResponse(success=True, message="Коллекция скопирована", ids=[])
+    except Exception as e:
+        logger.error(f"Error copying collection: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Error copying collection: {str(e)}")

@@ -56,37 +56,37 @@ def render_classification_tab(api_url, username, password):
 
             if token:
                 with st.spinner("Classifying request..."):
-                    result = classify_request(subject, description, token, api_url)
+                    prod_result = classify_request(subject, description, token, api_url)
+                    test_collection = st.session_state.get("test_collection")
+                    test_result = None
+                    if test_collection:
+                        test_result = classify_request(
+                            subject, description, token, api_url, collection=test_collection
+                        )
 
-                if result and "predictions" in result:
+                if prod_result and "predictions" in prod_result:
                     st.success("Request successfully classified!")
 
-                    # Show results as a table
-                    predictions_df = pd.DataFrame(result["predictions"])
-                    st.subheader("Classification Results:")
-                    st.dataframe(predictions_df, width=800)
+                    col1, col2 = st.columns(2)
+                    with col1:
+                        predictions_df = pd.DataFrame(prod_result["predictions"])
+                        st.subheader("Production Results:")
+                        st.dataframe(predictions_df, width=400)
+                        st.write(
+                            f"Predicted: {prod_result['predictions'][0]['class_name']} "
+                            f"({prod_result['predictions'][0]['probability']:.2f})"
+                        )
 
-                    # Visualize probabilities
-                    fig, ax = plt.subplots(figsize=(10, 5))
-                    sns.barplot(
-                        x="class_name",
-                        y="probability",
-                        data=predictions_df.head(5),
-                        ax=ax,
-                    )
-                    ax.set_xlabel("Class")
-                    ax.set_ylabel("Probability")
-                    ax.set_title("Top 5 Classes by Probability")
-                    plt.xticks(rotation=45, ha="right")
-                    plt.tight_layout()
-                    st.pyplot(fig)
-
-                    # Show the predicted class
-                    st.subheader(
-                        f"Predicted Class: {result['predictions'][0]['class_name']}"
-                    )
-                    st.subheader(
-                        f"Probability: {result['predictions'][0]['probability']:.2f}"
-                    )
+                    if test_result and "predictions" in test_result:
+                        with col2:
+                            test_df = pd.DataFrame(test_result["predictions"])
+                            st.subheader(
+                                f"Test Results ({test_collection})"
+                            )
+                            st.dataframe(test_df, width=400)
+                            st.write(
+                                f"Predicted: {test_result['predictions'][0]['class_name']} "
+                                f"({test_result['predictions'][0]['probability']:.2f})"
+                            )
                 else:
                     st.error("Failed to get classification results")

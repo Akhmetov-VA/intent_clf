@@ -185,6 +185,20 @@ class VectorDBService:
             logger.error(f"Error clearing collection: {str(e)}")
             raise
 
+    def copy_collection(self, source: str, dest: Optional[str] = None) -> None:
+        """Copy all data from source collection to destination."""
+        dst = dest or self.collection_name
+        logger.info(f"Copying collection {source} -> {dst}")
+        self.client.recreate_collection(
+            collection_name=dst,
+            vectors_config=models.VectorParams(
+                size=self.vector_size,
+                distance=models.Distance.COSINE,
+            ),
+            init_from=models.InitFrom(collection=source),
+        )
+        logger.info("Collection copy finished")
+
 
 
 # Создаем синглтон для переиспользования клиента Qdrant
