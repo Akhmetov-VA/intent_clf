@@ -9,6 +9,8 @@ wheels/
 # Virtual environments
 .venv
 *.csv
+!scripts/sample_default.csv
+!scripts/sample_custom.csv
 *.json
 *.pkl
 *.xlsx

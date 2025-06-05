@@ -47,17 +47,22 @@ services:
     build:
       context: frontend
       dockerfile: Dockerfile
+    depends_on:
+      - api
     ports:
       - "27365:8501"
     volumes:
       - ./frontend/main.py:/app/main.py
+      - ./scripts:/scripts
     working_dir: /app
     environment:
       API_URL: "http://api:8000"
     command: >
-      streamlit run main.py \
+      sh -c "python /scripts/test_collections.py /scripts/sample_default.csv /scripts/sample_custom.csv && \
+        streamlit run main.py \
         --server.port=8501 \
-        --server.fileWatcherType none
+        --server.fileWatcherType none"
 
 volumes:
   qdrant_data:
+
