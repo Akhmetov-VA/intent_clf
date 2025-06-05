@@ -58,10 +58,7 @@ services:
     environment:
       API_URL: "http://api:8000"
     command: >
-      sh -c "python /scripts/test_collections.py /scripts/sample_default.csv /scripts/sample_custom.csv && \
-        streamlit run main.py \
-        --server.port=8501 \
-        --server.fileWatcherType none"
+      sh -c "streamlit run main.py --server.port=8501"
 
 volumes:
   qdrant_data:
