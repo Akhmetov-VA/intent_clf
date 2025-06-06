@@ -25,7 +25,7 @@ def render_data_upload_tab(api_url, username, password, collection=None):
     
     # Upload file (CSV or Excel)
     uploaded_file = st.file_uploader(
-        "Choose data file", type=["csv", "xlsx", "xls"]
+        "Choose data file", type=["csv", "xlsx", "xls"], key=str(collection)
     )
     
     if uploaded_file:

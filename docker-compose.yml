@@ -52,7 +52,7 @@ services:
     ports:
       - "27365:8501"
     volumes:
-      - ./frontend/main.py:/app/main.py
+      - ./frontend:/app
       - ./scripts:/scripts
     working_dir: /app
     environment:
