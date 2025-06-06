@@ -26,7 +26,7 @@ class Settings(BaseSettings):
     QDRANT_COLLECTION: str = os.getenv("QDRANT_COLLECTION", "requests")
 
     # Настройки классификации
-    KNN_NEIGHBORS: int = 5
+    KNN_NEIGHBORS: int = 50
     RERANKER_MODEL: str = "BAAI/bge-reranker-large"
     RERANK_THRESHOLD: float = 0.2
 

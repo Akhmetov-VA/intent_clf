@@ -8,7 +8,8 @@ services:
     # ports:
     #   - "27364:8000"
     volumes:
-      - ./app:/app/app
+      - ./backend:/app
+    working_dir: /app
     environment:
       - SECRET_KEY=your-secret-key-change-in-production
       - QDRANT_HOST=qdrant
