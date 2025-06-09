@@ -1,11 +1,60 @@
 import matplotlib.pyplot as plt
 import streamlit as st
 import pandas as pd
-import numpy as np
 from collections import Counter
 
 from api_utils import get_token, search_similar
 from config import DEFAULT_EXAMPLES
+
+
+def _results_dataframe(results):
+    return pd.DataFrame(
+        [
+            {
+                "Request ID": r["request_id"],
+                "Subject": r["subject"],
+                "Description": r["description"],
+                "Class": r["class_name"],
+                "Score": f"{r['score']:.4f}",
+            }
+            for r in results
+        ]
+    )
+
+
+def _show_search_results(title: str, results: list) -> None:
+    if not results:
+        st.info("No results")
+        return
+    with st.expander(title, expanded=True):
+        top3 = results[: min(3, len(results))]
+        st.subheader("Top 3 Most Similar Documents")
+        st.dataframe(_results_dataframe(top3), use_container_width=True)
+
+        st.subheader("All Retrieved Documents")
+        st.dataframe(_results_dataframe(results), use_container_width=True)
+
+        class_counts = Counter([r["class_name"] for r in results])
+        if class_counts:
+            classes = list(class_counts.keys())
+            counts = list(class_counts.values())
+            fig, ax = plt.subplots(figsize=(10, 6))
+            bars = ax.bar(classes, counts, color="skyblue")
+            for bar in bars:
+                height = bar.get_height()
+                ax.text(
+                    bar.get_x() + bar.get_width() / 2.0,
+                    height + 0.1,
+                    f"{height}",
+                    ha="center",
+                    va="bottom",
+                )
+            plt.title("Document Distribution by Class")
+            plt.xlabel("Class")
+            plt.ylabel("Number of Documents")
+            plt.xticks(rotation=45, ha="right")
+            plt.tight_layout()
+            st.pyplot(fig)
 
 def render_similar_docs_tab(api_url, username, password):
     """Display the Similar Documents Search tab"""
@@ -67,122 +116,29 @@ def render_similar_docs_tab(api_url, username, password):
                         )
 
                 if search_results and "results" in search_results:
-                    st.success(f"Found {len(search_results['results'])} documents")
+                    st.success(
+                        f"Found {len(search_results['results'])} documents"
+                    )
                     if test_results and "results" in test_results:
                         st.info(
                             f"Test collection {test_collection}: {len(test_results['results'])} results"
                         )
-                    
-                    # Display user's query
-                    st.subheader("Your Query")
-                    query_data = {
-                        "Subject": [search_subject],
-                        "Description": [search_description]
-                    }
-                    st.dataframe(pd.DataFrame(query_data), use_container_width=True)
-                    
-                    # Display top-3 most similar documents
-                    if len(search_results["results"]) > 0:
-                        st.subheader("Top 3 Most Similar Documents (Prod)")
-                        top3_results = search_results["results"][:min(3, len(search_results["results"]))]
-                        
-                        top3_data = []
-                        for result in top3_results:
-                            top3_data.append({
-                                "Request ID": result['request_id'],
-                                "Subject": result['subject'],
-                                "Description": result['description'],
-                                "Class": result['class_name'],
-                                "Similarity Score": f"{result['score']:.4f}"
-                            })
-                        
-                        st.dataframe(pd.DataFrame(top3_data), use_container_width=True)
 
-                    if test_results and "results" in test_results and len(test_results["results"]) > 0:
-                        st.subheader(f"Top 3 Most Similar Documents ({test_collection})")
-                        top3_test = test_results["results"][:min(3, len(test_results["results"]))]
-                        tdata = []
-                        for r in top3_test:
-                            tdata.append(
-                                {
-                                    "Request ID": r["request_id"],
-                                    "Subject": r["subject"],
-                                    "Description": r["description"],
-                                    "Class": r["class_name"],
-                                    "Similarity Score": f"{r['score']:.4f}",
-                                }
-                            )
-                        st.dataframe(pd.DataFrame(tdata), use_container_width=True)
-                    
-                    # Display all results in a table
-                    st.subheader("All Retrieved Documents (Prod)")
-                    
-                    # Prepare data for table
-                    table_data = []
-                    for i, result in enumerate(search_results["results"]):
-                        table_data.append({
-                            "Request ID": result['request_id'],
-                            "Subject": result['subject'],
-                            "Description": result['description'],
-                            "Class": result['class_name'],
-                            "Score": f"{result['score']:.4f}"
-                        })
-                    
-                    results_df = pd.DataFrame(table_data)
-                    st.dataframe(results_df, use_container_width=True)
+                    st.subheader("Your Query")
+                    st.dataframe(
+                        pd.DataFrame(
+                            {"Subject": [search_subject], "Description": [search_description]}
+                        ),
+                        use_container_width=True,
+                    )
+
+                    _show_search_results("Production Results", search_results["results"])
 
                     if test_results and "results" in test_results:
-                        st.subheader(f"All Retrieved Documents ({test_collection})")
-                        ttable = [
-                            {
-                                "Request ID": r["request_id"],
-                                "Subject": r["subject"],
-                                "Description": r["description"],
-                                "Class": r["class_name"],
-                                "Score": f"{r['score']:.4f}",
-                            }
-                            for r in test_results["results"]
-                        ]
-                        tdf = pd.DataFrame(ttable)
-                        st.dataframe(tdf, use_container_width=True)
-
-                    # Visualize class distribution
-                    if search_results["results"]:
-                        class_counts = Counter([result["class_name"] for result in search_results["results"]])
-                        
-                        sorted_classes = sorted(class_counts.items(), key=lambda x: x[1], reverse=True)
-                        classes = [cls for cls, _ in sorted_classes]
-                        counts = [count for _, count in sorted_classes]
-                        
-                        fig, ax = plt.subplots(figsize=(10, 6))
-                        bars = ax.bar(classes, counts, color='skyblue')
-                        
-                        for bar in bars:
-                            height = bar.get_height()
-                            ax.text(bar.get_x() + bar.get_width()/2., height + 0.1,
-                                   f'{height}', ha='center', va='bottom')
-                        
-                        plt.title('Document Distribution by Class')
-                        plt.xlabel('Class')
-                        plt.ylabel('Number of Documents')
-                        plt.xticks(rotation=45, ha='right')
-                        plt.tight_layout()
-                        
-                        st.pyplot(fig)
-                        
-                        # Display percentage distribution as pie chart
-                        if len(class_counts) > 1:
-                            fig2, ax2 = plt.subplots(figsize=(8, 8))
-                            wedges, texts, autotexts = ax2.pie(
-                                counts, 
-                                labels=classes, 
-                                autopct='%1.1f%%',
-                                textprops={'fontsize': 9}
-                            )
-                            plt.title('Class Percentage Distribution')
-                            plt.tight_layout()
-                            
-                            st.pyplot(fig2)
+                        _show_search_results(
+                            f"Test Results ({test_collection})",
+                            test_results["results"],
+                        )
 
                 else:
                     st.warning("No similar documents found")
