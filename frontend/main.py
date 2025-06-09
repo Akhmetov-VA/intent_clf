@@ -3,7 +3,7 @@ import streamlit as st
 from config import API_URL, USERNAME, PASSWORD, TEST_COLLECTION
 from tab_classification import render_classification_tab
 from tab_similar_docs import render_similar_docs_tab
-from tab_data_upload import render_data_upload_tab
+from api_utils import render_data_upload_tab
 from tab_test_env import render_test_env_tab
 
 # Page configuration
