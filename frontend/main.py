@@ -24,13 +24,8 @@ with st.sidebar:
     st.title("API Settings")
     username = st.text_input("Username")
     password = st.text_input("Password", type="password")
-    test_collection = st.text_input(
-        "Test Collection",
-        value=st.session_state.get("test_collection", TEST_COLLECTION),
-    )
 
     if st.button("Save Settings"):
-        st.session_state["test_collection"] = test_collection
         st.success("Settings saved")
 
 # Create tabs

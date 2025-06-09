@@ -2,7 +2,8 @@ import pandas as pd
 import streamlit as st
 
 from api_utils import get_token, classify_request
-from config import DEFAULT_EXAMPLES
+from config import DEFAULT_EXAMPLES, TEST_COLLECTION
+
 
 
 def _show_predictions(title: str, predictions: list) -> None:
@@ -11,12 +12,13 @@ def _show_predictions(title: str, predictions: list) -> None:
         st.warning("No predictions returned")
         return
     with st.expander(title, expanded=True):
-        df = pd.DataFrame(predictions)
-        st.dataframe(df, use_container_width=True)
         st.write(
             f"Predicted: {predictions[0]['class_name']} "
             f"({predictions[0]['probability']:.2f})"
         )
+        df = pd.DataFrame(predictions)
+        st.dataframe(df, use_container_width=True)
+        
 
 def render_classification_tab(api_url, username, password):
     """Display the classification tab"""
@@ -69,7 +71,7 @@ def render_classification_tab(api_url, username, password):
             if token:
                 with st.spinner("Classifying request..."):
                     prod_result = classify_request(subject, description, token, api_url)
-                    test_collection = st.session_state.get("test_collection")
+                    test_collection = TEST_COLLECTION
                     test_result = None
                     if test_collection:
                         test_result = classify_request(

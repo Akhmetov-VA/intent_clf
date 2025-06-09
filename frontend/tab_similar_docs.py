@@ -4,7 +4,7 @@ import pandas as pd
 from collections import Counter
 
 from api_utils import get_token, search_similar
-from config import DEFAULT_EXAMPLES
+from config import DEFAULT_EXAMPLES, TEST_COLLECTION
 
 
 def _results_dataframe(results):
@@ -103,7 +103,7 @@ def render_similar_docs_tab(api_url, username, password):
                         api_url,
                         limit,
                     )
-                    test_collection = st.session_state.get("test_collection")
+                    test_collection = TEST_COLLECTION
                     test_results = None
                     if test_collection:
                         test_results = search_similar(
