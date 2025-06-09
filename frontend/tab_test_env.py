@@ -12,7 +12,7 @@ def _copy_latest_metrics(collection: str) -> None:
     dst_dir = os.path.join("metrics", "prod")
     if not os.path.isdir(src_dir):
         return
-    files = [f for f in os.listdir(src_dir) if f.startswith("metrics_") and f.endswith(".json")]
+    files = [f for f in os.listdir(src_dir) if f.startswith("metrics_") and f.endswith(".json") or (f.startswith('confusion_matrix_') or f.startswith('classification_metrics_')) and f.endswith('.png')]
     if not files:
         return
     files.sort(reverse=True)
@@ -20,9 +20,6 @@ def _copy_latest_metrics(collection: str) -> None:
     shutil.copy(os.path.join(src_dir, files[0]), os.path.join(dst_dir, files[0]))
 
 def render_test_env_tab(api_url, username, password):
-    if "test_collection" not in st.session_state:
-        st.session_state["test_collection"] = TEST_COLLECTION
-
     render_data_upload_tab(
         api_url, username, password, collection=TEST_COLLECTION
     )
