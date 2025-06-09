@@ -5,17 +5,29 @@ from api_utils import get_token, classify_request
 from config import DEFAULT_EXAMPLES
 
 
+def _predictions_dataframe(predictions: list) -> pd.DataFrame:
+    """Return DataFrame with limited prediction fields."""
+    return pd.DataFrame(
+        [
+            {
+                "Class": p.get("class_name"),
+                "Probability": p.get("probability"),
+            }
+            for p in predictions
+        ]
+    )
+
+
 def _show_predictions(title: str, predictions: list) -> None:
     """Render predictions inside an expander."""
     if not predictions:
         st.warning("No predictions returned")
         return
     with st.expander(title, expanded=True):
-        df = pd.DataFrame(predictions)
-        st.dataframe(df, use_container_width=True)
+        st.dataframe(_predictions_dataframe(predictions), use_container_width=True)
         st.write(
-            f"Predicted: {predictions[0]['class_name']} "
-            f"({predictions[0]['probability']:.2f})"
+            f"Predicted: {predictions[0].get('class_name')} "
+            f"({predictions[0].get('probability', 0):.2f})"
         )
 
 def render_classification_tab(api_url, username, password):
