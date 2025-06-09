@@ -1,10 +1,22 @@
 import pandas as pd
-import matplotlib.pyplot as plt
-import seaborn as sns
 import streamlit as st
 
 from api_utils import get_token, classify_request
 from config import DEFAULT_EXAMPLES
+
+
+def _show_predictions(title: str, predictions: list) -> None:
+    """Render predictions inside an expander."""
+    if not predictions:
+        st.warning("No predictions returned")
+        return
+    with st.expander(title, expanded=True):
+        df = pd.DataFrame(predictions)
+        st.dataframe(df, use_container_width=True)
+        st.write(
+            f"Predicted: {predictions[0]['class_name']} "
+            f"({predictions[0]['probability']:.2f})"
+        )
 
 def render_classification_tab(api_url, username, password):
     """Display the classification tab"""
@@ -66,27 +78,11 @@ def render_classification_tab(api_url, username, password):
 
                 if prod_result and "predictions" in prod_result:
                     st.success("Request successfully classified!")
-
-                    col1, col2 = st.columns(2)
-                    with col1:
-                        predictions_df = pd.DataFrame(prod_result["predictions"])
-                        st.subheader("Production Results:")
-                        st.dataframe(predictions_df, width=400)
-                        st.write(
-                            f"Predicted: {prod_result['predictions'][0]['class_name']} "
-                            f"({prod_result['predictions'][0]['probability']:.2f})"
-                        )
-
+                    _show_predictions("Production Results", prod_result["predictions"])
                     if test_result and "predictions" in test_result:
-                        with col2:
-                            test_df = pd.DataFrame(test_result["predictions"])
-                            st.subheader(
-                                f"Test Results ({test_collection})"
-                            )
-                            st.dataframe(test_df, width=400)
-                            st.write(
-                                f"Predicted: {test_result['predictions'][0]['class_name']} "
-                                f"({test_result['predictions'][0]['probability']:.2f})"
-                            )
+                        _show_predictions(
+                            f"Test Results ({test_collection})",
+                            test_result["predictions"],
+                        )
                 else:
                     st.error("Failed to get classification results")
