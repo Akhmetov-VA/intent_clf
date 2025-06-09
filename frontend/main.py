@@ -1,6 +1,6 @@
 import streamlit as st
 
-from config import API_URL, USERNAME, PASSWORD
+from config import API_URL, USERNAME, PASSWORD, TEST_COLLECTION
 from tab_classification import render_classification_tab
 from tab_similar_docs import render_similar_docs_tab
 from tab_data_upload import render_data_upload_tab
@@ -24,8 +24,13 @@ with st.sidebar:
     st.title("API Settings")
     username = st.text_input("Username")
     password = st.text_input("Password", type="password")
+    test_collection = st.text_input(
+        "Test Collection",
+        value=st.session_state.get("test_collection", TEST_COLLECTION),
+    )
 
     if st.button("Save Settings"):
+        st.session_state["test_collection"] = test_collection
         st.success("Settings saved")
 
 # Create tabs

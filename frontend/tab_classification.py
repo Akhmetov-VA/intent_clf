@@ -78,11 +78,22 @@ def render_classification_tab(api_url, username, password):
 
                 if prod_result and "predictions" in prod_result:
                     st.success("Request successfully classified!")
-                    _show_predictions("Production Results", prod_result["predictions"])
                     if test_result and "predictions" in test_result:
+                        col1, col2 = st.columns(2)
+                        with col1:
+                            _show_predictions(
+                                "Production Results",
+                                prod_result["predictions"],
+                            )
+                        with col2:
+                            _show_predictions(
+                                f"Test Results ({test_collection})",
+                                test_result["predictions"],
+                            )
+                    else:
                         _show_predictions(
-                            f"Test Results ({test_collection})",
-                            test_result["predictions"],
+                            "Production Results",
+                            prod_result["predictions"],
                         )
                 else:
                     st.error("Failed to get classification results")

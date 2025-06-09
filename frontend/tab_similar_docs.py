@@ -132,12 +132,22 @@ def render_similar_docs_tab(api_url, username, password):
                         use_container_width=True,
                     )
 
-                    _show_search_results("Production Results", search_results["results"])
-
                     if test_results and "results" in test_results:
+                        col1, col2 = st.columns(2)
+                        with col1:
+                            _show_search_results(
+                                "Production Results",
+                                search_results["results"],
+                            )
+                        with col2:
+                            _show_search_results(
+                                f"Test Results ({test_collection})",
+                                test_results["results"],
+                            )
+                    else:
                         _show_search_results(
-                            f"Test Results ({test_collection})",
-                            test_results["results"],
+                            "Production Results",
+                            search_results["results"],
                         )
 
                 else:
